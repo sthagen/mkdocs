@@ -84,7 +84,7 @@ def _check_version(branch):
         raise Abort('Deployment Aborted!')
 
 
-def gh_deploy(config, message=None, force=False, ignore_version=False, shell=False):
+def gh_deploy(config, message=None, force=False, no_history=False, ignore_version=False, shell=False):
 
     if not _is_cwd_git_repo():
         log.error('Cannot deploy - this directory does not appear to be a git '
@@ -113,17 +113,18 @@ def gh_deploy(config, message=None, force=False, ignore_version=False, shell=Fal
             push=True,
             force=force,
             use_shell=shell,
+            no_history=no_history,
             nojekyll=True
         )
     except ghp_import.GhpError as e:
-        log.error("Failed to deploy to GitHub with error: \n{}".format(e.message))
+        log.error(f"Failed to deploy to GitHub with error: \n{e.message}")
         raise Abort('Deployment Aborted!')
 
     cname_file = os.path.join(config['site_dir'], 'CNAME')
     # Does this repository have a CNAME set for GitHub pages?
     if os.path.isfile(cname_file):
         # This GitHub pages repository has a CNAME configured.
-        with(open(cname_file, 'r')) as f:
+        with open(cname_file) as f:
             cname_host = f.read().strip()
         log.info(f'Based on your CNAME file, your documentation should be '
                  f'available shortly at: http://{cname_host}')

@@ -40,7 +40,8 @@ if sys.argv[-1] == 'publish':
     os.system("python setup.py sdist bdist_wheel")
     os.system("twine upload dist/*")
     print("You probably want to also tag the version now:")
-    print("  git tag -a {0} -m 'version {0}'".format(get_version("mkdocs")))
+    version = get_version("mkdocs")
+    print(f"  git tag -a {version} -m 'version {version}'")
     print("  git push --tags")
     sys.exit()
 
@@ -49,6 +50,9 @@ setup(
     name="mkdocs",
     version=get_version("mkdocs"),
     url='https://www.mkdocs.org',
+    project_urls={
+        'Source': 'https://github.com/mkdocs/mkdocs',
+    },
     license='BSD',
     description='Project documentation with Markdown.',
     long_description=long_description,
@@ -59,13 +63,13 @@ setup(
     include_package_data=True,
     install_requires=[
         'click>=3.3',
-        'Jinja2>=2.10.1',
+        'Jinja2>=2.10.2',
         'Markdown>=3.2.1',
         'PyYAML>=3.10',
         'watchdog>=2.0',
         'ghp-import>=1.0',
         'pyyaml_env_tag>=0.1',
-        'importlib_metadata>=3.10',
+        'importlib_metadata>=4.3',
         'packaging>=20.5',
         'mergedeep>=1.3.4'
     ],
@@ -96,6 +100,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3 :: Only',
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",

@@ -20,6 +20,67 @@ The current and past members of the MkDocs team.
 * [@tomchristie](https://github.com/tomchristie/)
 * [@d0ugal](https://github.com/d0ugal/)
 * [@waylan](https://github.com/waylan/)
+* [@oprypin](https://github.com/oprypin/)
+* [@ultrabug](https://github.com/ultrabug/)
+
+## Version 1.3.0 (2022-03-26)
+
+### Feature upgrades
+
+* ReadTheDocs theme updated from v0.4.1 to v1.0.0 according to upstream (#2585)
+
+    The most notable changes:
+
+    * New option `logo`: Rather than displaying the `site_name` in the title, one can specify a path to an image to display instead.
+    * New option `anonymize_ip` for Google Analytics.
+    * Dependencies were upgraded: jQuery upgraded to 3.6.0, Modernizr.js dropped, and others.
+
+    See [documentation of config options for the theme](https://www.mkdocs.org/user-guide/choosing-your-theme/#readthedocs)
+
+* Built-in themes now also support these languages:
+    * German (#2633)
+    * Persian (Farsi) (#2787)
+
+* Support custom directories to watch when running `mkdocs serve` (#2642)
+
+    MkDocs by default watches the *docs* directory and the config file. Now there is a way to add more directories to watch for changes, either via the YAML `watch` key or the command line flag `--watch`.
+
+    Normally MkDocs never reaches into any other directories (so this feature shouldn't be necessary), but some plugins and extensions may do so.
+
+    See [documentation](https://www.mkdocs.org/user-guide/configuration/#watch).
+
+* New `--no-history` option for `gh_deploy` (#2594)
+
+    Allows to discard the history of commits when deploying, and instead replace it with one root commit
+
+### Bug fixes
+
+* An XSS vulnerability when using the search function in built-in themes was fixed (#2791)
+
+* Setting the `edit_uri` option no longer erroneously adds a trailing slash to `repo_url` (#2733)
+
+### Miscellaneous
+
+* Breaking change: the `pages` config option that was deprecated for a very long time now causes an error when used (#2652)
+
+    To fix the error, just change from `pages` to `nav`.
+
+* Performance optimization: during startup of MkDocs, code and dependencies of other commands will not be imported (#2714)
+
+    The most visible effect of this is that dependencies of `mkdocs serve` will not be imported when `mkdocs build` is used.
+
+* Recursively validate `nav` (#2680)
+
+    Validation of the nested `nav` structure has been reworked to report errors early and reliably. Some [edge cases](https://github.com/mkdocs/mkdocs/blob/b7272150bbc9bf8f66c878f6517742de3528972b/mkdocs/tests/config/config_options_tests.py#L783) have been declared invalid.
+
+Other small improvements; see [commit log](https://github.com/mkdocs/mkdocs/compare/1.2.3...1.3.0).
+
+## Version 1.2.4 (2022-03-26)
+
+* Compatibility with Jinja2 3.1.0 (#2800)
+
+    Due to a breaking change in Jinja2, MkDocs would crash with the message
+    `AttributeError: module 'jinja2' has no attribute 'contextfilter'`
 
 ## Version 1.2.3 (2021-10-12)
 
@@ -29,47 +90,35 @@ The current and past members of the MkDocs team.
     * Brazilian Portuguese (#2535)
     * Spanish (#2545, previously #2396)
 
-* Third-party plugins will take precedence over built-in plugins with the same
-  name (#2591)
+* Third-party plugins will take precedence over built-in plugins with the same name (#2591)
 
-* Bugfix: Fix ability to load translations for some languages:
-  core support (#2565) and search plugin support with fallbacks (#2602)
+* Bugfix: Fix ability to load translations for some languages: core support (#2565) and search plugin support with fallbacks (#2602)
 
-* Bugfix (regression in 1.2): Prevent directory traversal in the dev server
-  (#2604)
+* Bugfix (regression in 1.2): Prevent directory traversal in the dev server (#2604)
 
-* Bugfix (regression in 1.2): Prevent webserver warnings from being treated as
-  a build failure in strict mode (#2607)
+* Bugfix (regression in 1.2): Prevent webserver warnings from being treated as a build failure in strict mode (#2607)
 
 * Bugfix: Correctly print colorful messages in the terminal on Windows (#2606)
 
 * Bugfix: Python version 3.10 was displayed incorrectly in `--version` (#2618)
 
-Other small improvements; see
-[commit log](https://github.com/mkdocs/mkdocs/compare/1.2.2...1.2.3).
+Other small improvements; see [commit log](https://github.com/mkdocs/mkdocs/compare/1.2.2...1.2.3).
 
 ## Version 1.2.2 (2021-07-18)
 
-* Bugfix (regression in 1.2): Fix serving files/paths with Unicode characters
-  (#2464)
+* Bugfix (regression in 1.2): Fix serving files/paths with Unicode characters (#2464)
 
-* Bugfix (regression in 1.2): Revert livereload file watching to use polling
-  observer (#2477)
+* Bugfix (regression in 1.2): Revert livereload file watching to use polling observer (#2477)
 
-    This had to be done to reasonably support usages that span virtual
-    filesystems such as non-native Docker and network mounts.
+    This had to be done to reasonably support usages that span virtual filesystems such as non-native Docker and network mounts.
 
-    This goes back to the polling approach, very similar to that was always used
-    prior, meaning most of the same downsides with latency and CPU usage.
+    This goes back to the polling approach, very similar to that was always used prior, meaning most of the same downsides with latency and CPU usage.
 
-* Revert from 1.2: Remove the requirement of a `site_url` config and the
-  restriction on `use_directory_urls` (#2490)
-  
-* Bugfix (regression in 1.2): Don't require trailing slash in the URL when
-  serving a directory index in `mkdocs serve` server (#2507)
+* Revert from 1.2: Remove the requirement of a `site_url` config and the restriction on `use_directory_urls` (#2490)
 
-    Instead of showing a 404 error, detect if it's a directory and redirect to a
-    path with a trailing slash added, like before.
+* Bugfix (regression in 1.2): Don't require trailing slash in the URL when serving a directory index in `mkdocs serve` server (#2507)
+
+    Instead of showing a 404 error, detect if it's a directory and redirect to a path with a trailing slash added, like before.
 
 * Bugfix: Fix `gh_deploy` with config-file in the current directory (#2481)
 
@@ -79,8 +128,7 @@ Other small improvements; see
 
 * Stop treating ";" as a special character in URLs: urlparse -> urlsplit (#2502)
 
-* Improve build performance for sites with many pages (partly already done in
-  1.2) (#2407)
+* Improve build performance for sites with many pages (partly already done in 1.2) (#2407)
 
 ## Version 1.2.1 (2021-06-09)
 
@@ -238,7 +286,7 @@ configuration documentation for details.
         This was reverted in release 1.2.2
 
 * The `google_analytics` configuration option is deprecated as Google appears to
-  be fazing it out in favor of its new Google Analytics 4 property. See the
+  be phasing it out in favor of its new Google Analytics 4 property. See the
   documentation for your theme for alternatives which can be configured as part
   of your theme configuration. For example, the [mkdocs][mkdocs-theme] and
   [readthedocs][rtd-theme] themes have each added a new `theme.analytics.gtag`
@@ -350,7 +398,7 @@ NodeJS environment if so desired. For more information please read the
 [`prebuild_index` documentation][prebuildindex-docs].
 
 [lunrpy-docs]: http://lunr.readthedocs.io/
-[prebuildindex-docs]: ../../user-guide/configuration/#prebuild_index
+[prebuildindex-docs]: ../user-guide/configuration.md#prebuild_index
 
 #### `readthedocs` theme updated with upstream (#588 and #1374)
 

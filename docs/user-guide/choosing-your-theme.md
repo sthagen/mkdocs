@@ -105,6 +105,8 @@ supports the following options:
     * `ja`: Japanese
     * `pt_BR`: Portuguese (Brazil)
     * `zh_CN`: Simplified Chinese
+    * `de`: German
+    * `fa`: Persian (Farsi)
 
     See the guide on [localizing your theme] for more information.
 
@@ -133,7 +135,6 @@ theme supports the following options:
                 - rust
 
 * __`analytics`__: Defines configuration options for an analytics service.
-  Currently, only Google Analytics v4 is supported via the `gtag` option.
 
     * __`gtag`__: To enable Google Analytics, set to a Google Analytics v4
     tracking ID, which uses the `G-` format. See Google's documentation to
@@ -146,6 +147,9 @@ theme supports the following options:
                     gtag: G-ABC123
 
         When set to the default (`null`) Google Analytics is disabled for the
+
+    * __`anonymize_ip`__: To enable anonymous IP address for Google Analytics,
+    set this to `True`. Default: `False`.
 
 * __`include_homepage_in_sidebar`__: Lists the homepage in the sidebar menu. As
   MkDocs requires that the homepage be listed in the `nav` configuration
@@ -180,8 +184,13 @@ theme supports the following options:
     * `ja`: Japanese
     * `pt_BR`: Portuguese (Brazil)
     * `zh_CN`: Simplified Chinese
+    * `de`: German
+    * `fa`: Persian (Farsi)
 
     See the guide on [localizing your theme] for more information.
+
+* __`logo`__: To set a logo on your project instead of the plain text
+  `site_name`, set this variable to be the location of your image. Default: `null`.
 
 ## Third Party Themes
 

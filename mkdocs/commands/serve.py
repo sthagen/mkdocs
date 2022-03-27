@@ -4,6 +4,8 @@ import tempfile
 from urllib.parse import urlsplit
 from os.path import isdir, isfile, join
 
+import jinja2.exceptions
+
 from mkdocs.commands.build import build
 from mkdocs.config import load_config
 from mkdocs.exceptions import Abort
@@ -13,7 +15,7 @@ log = logging.getLogger(__name__)
 
 
 def serve(config_file=None, dev_addr=None, strict=None, theme=None,
-          theme_dir=None, livereload='livereload', watch_theme=False, **kwargs):
+          theme_dir=None, livereload='livereload', watch_theme=False, watch=[], **kwargs):
     """
     Start the MkDocs development server
 
@@ -41,6 +43,13 @@ def serve(config_file=None, dev_addr=None, strict=None, theme=None,
             site_dir=site_dir,
             **kwargs
         )
+
+        # combine CLI watch arguments with config file values
+        if config["watch"] is None:
+            config["watch"] = watch
+        else:
+            config["watch"].extend(watch)
+
         # Override a few config settings after validation
         config['site_url'] = 'http://{}{}'.format(config['dev_addr'], mount_path(config))
 
@@ -77,15 +86,21 @@ def serve(config_file=None, dev_addr=None, strict=None, theme=None,
             # Run `serve` plugin events.
             server = config['plugins'].run_event('serve', server, config=config, builder=builder)
 
+            for item in config['watch']:
+                server.watch(item)
+
         try:
             server.serve()
         except KeyboardInterrupt:
             log.info("Shutting down...")
         finally:
             server.shutdown()
+    except jinja2.exceptions.TemplateError:
+        # This is a subclass of OSError, but shouldn't be suppressed.
+        raise
     except OSError as e:  # pragma: no cover
         # Avoid ugly, unhelpful traceback
-        raise Abort(str(e))
+        raise Abort(f'{type(e).__name__}: {e}')
     finally:
         if isdir(site_dir):
             shutil.rmtree(site_dir)
