@@ -1,9 +1,9 @@
-import unittest
 import os
+import unittest
 from unittest import mock
 
-from mkdocs.structure.files import Files, File, get_files, _sort_files, _filter_paths
-from mkdocs.tests.base import load_config, tempdir, PathAssertionMixin
+from mkdocs.structure.files import File, Files, _filter_paths, _sort_files, get_files
+from mkdocs.tests.base import PathAssertionMixin, load_config, tempdir
 
 
 class TestFiles(PathAssertionMixin, unittest.TestCase):
@@ -541,11 +541,12 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
         ]
 
         for i, filename in enumerate(to_files):
-            file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
-            self.assertEqual(from_file.url, 'img.jpg')
-            self.assertEqual(file.url, to_file_urls[i])
-            self.assertEqual(from_file.url_relative_to(file.url), expected[i])
-            self.assertEqual(from_file.url_relative_to(file), expected[i])
+            with self.subTest(from_file=from_file.src_path, to_file=filename):
+                file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
+                self.assertEqual(from_file.url, 'img.jpg')
+                self.assertEqual(file.url, to_file_urls[i])
+                self.assertEqual(from_file.url_relative_to(file.url), expected[i])
+                self.assertEqual(from_file.url_relative_to(file), expected[i])
 
         from_file = File('foo/img.jpg', '/path/to/docs', '/path/to/site', use_directory_urls=False)
         expected = [
@@ -559,11 +560,12 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
         ]
 
         for i, filename in enumerate(to_files):
-            file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
-            self.assertEqual(from_file.url, 'foo/img.jpg')
-            self.assertEqual(file.url, to_file_urls[i])
-            self.assertEqual(from_file.url_relative_to(file.url), expected[i])
-            self.assertEqual(from_file.url_relative_to(file), expected[i])
+            with self.subTest(from_file=from_file.src_path, to_file=filename):
+                file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
+                self.assertEqual(from_file.url, 'foo/img.jpg')
+                self.assertEqual(file.url, to_file_urls[i])
+                self.assertEqual(from_file.url_relative_to(file.url), expected[i])
+                self.assertEqual(from_file.url_relative_to(file), expected[i])
 
         from_file = File('index.html', '/path/to/docs', '/path/to/site', use_directory_urls=False)
         expected = [
@@ -577,11 +579,12 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
         ]
 
         for i, filename in enumerate(to_files):
-            file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
-            self.assertEqual(from_file.url, 'index.html')
-            self.assertEqual(file.url, to_file_urls[i])
-            self.assertEqual(from_file.url_relative_to(file.url), expected[i])
-            self.assertEqual(from_file.url_relative_to(file), expected[i])
+            with self.subTest(from_file=from_file.src_path, to_file=filename):
+                file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
+                self.assertEqual(from_file.url, 'index.html')
+                self.assertEqual(file.url, to_file_urls[i])
+                self.assertEqual(from_file.url_relative_to(file.url), expected[i])
+                self.assertEqual(from_file.url_relative_to(file), expected[i])
 
         from_file = File('file.html', '/path/to/docs', '/path/to/site', use_directory_urls=False)
         expected = [
@@ -595,11 +598,12 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
         ]
 
         for i, filename in enumerate(to_files):
-            file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
-            self.assertEqual(from_file.url, 'file.html')
-            self.assertEqual(file.url, to_file_urls[i])
-            self.assertEqual(from_file.url_relative_to(file.url), expected[i])
-            self.assertEqual(from_file.url_relative_to(file), expected[i])
+            with self.subTest(from_file=from_file.src_path, to_file=filename):
+                file = File(filename, '/path/to/docs', '/path/to/site', use_directory_urls=False)
+                self.assertEqual(from_file.url, 'file.html')
+                self.assertEqual(file.url, to_file_urls[i])
+                self.assertEqual(from_file.url_relative_to(file.url), expected[i])
+                self.assertEqual(from_file.url_relative_to(file), expected[i])
 
     @tempdir(
         files=[

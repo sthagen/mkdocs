@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
+import json
 import unittest
 from unittest import mock
-import json
 
+from mkdocs.config.config_options import ValidationError
+from mkdocs.contrib import search
+from mkdocs.contrib.search import search_index
 from mkdocs.structure.files import File
 from mkdocs.structure.pages import Page
 from mkdocs.structure.toc import get_toc
-from mkdocs.contrib import search
-from mkdocs.contrib.search import search_index
-from mkdocs.config.config_options import ValidationError
 from mkdocs.tests.base import dedent, get_markdown_toc, load_config
 
 
@@ -449,54 +449,55 @@ class SearchIndexTests(unittest.TestCase):
             test_page.toc = get_toc(get_markdown_toc(test_page.markdown))
             return test_page
 
-        validate = {
-            'full': (
-                lambda data: self.assertEqual(len(data[0]), 4)
-                and self.assertTrue([x for x in data[0][0] if x['title'] and x['text']])
-            ),
-            'sections': (
-                lambda data:
-                # Sanity
-                self.assertEqual(len(data[0]), 4)
-                and
-                # Page
-                (
-                    self.assertEqual(data[0][0]['title'], data[1].title)
-                    and self.assertTrue(data[0][0]['text'])
-                )
-                and
-                # Headings
-                self.assertTrue([x for x in data[0][1:] if x['title'] and not x['text']])
-            ),
-            'titles': (
-                lambda data:
-                # Sanity
-                self.assertEqual(len(data[0]), 1)
-                and self.assertFalse([x for x in data[0] if x['text']])
-            ),
-        }
+        def validate_full(data, page):
+            self.assertEqual(len(data), 4)
+            for x in data:
+                self.assertTrue(x['title'])
+                self.assertTrue(x['text'])
 
-        for option in ['full', 'sections', 'titles']:
-            plugin = search.SearchPlugin()
+        def validate_sections(data, page):
+            # Sanity
+            self.assertEqual(len(data), 4)
+            # Page
+            self.assertEqual(data[0]['title'], page.title)
+            self.assertFalse(data[0]['text'])
+            # Headings
+            for x in data[1:]:
+                self.assertTrue(x['title'])
+                self.assertFalse(x['text'])
 
-            # Load plugin config, overriding indexing for test case
-            errors, warnings = plugin.load_config({'indexing': option})
-            self.assertEqual(errors, [])
-            self.assertEqual(warnings, [])
+        def validate_titles(data, page):
+            # Sanity
+            self.assertEqual(len(data), 1)
+            for x in data:
+                self.assertFalse(x['text'])
 
-            base_cfg = load_config()
-            base_cfg['plugins']['search'].config['indexing'] = option
+        for option, validate in {
+            'full': validate_full,
+            'sections': validate_sections,
+            'titles': validate_titles,
+        }.items():
+            with self.subTest(option):
+                plugin = search.SearchPlugin()
 
-            pages = [
-                test_page('Home', 'index.md', base_cfg),
-                test_page('About', 'about.md', base_cfg),
-            ]
+                # Load plugin config, overriding indexing for test case
+                errors, warnings = plugin.load_config({'indexing': option})
+                self.assertEqual(errors, [])
+                self.assertEqual(warnings, [])
 
-            for page in pages:
-                index = search_index.SearchIndex(**plugin.config)
-                index.add_entry_from_context(page)
-                data = index.generate_search_index()
-                validate[option]((json.loads(data)['docs'], page))
+                base_cfg = load_config()
+                base_cfg['plugins']['search'].config['indexing'] = option
+
+                pages = [
+                    test_page('Home', 'index.md', base_cfg),
+                    test_page('About', 'about.md', base_cfg),
+                ]
+
+                for page in pages:
+                    index = search_index.SearchIndex(**plugin.config)
+                    index.add_entry_from_context(page)
+                    data = index.generate_search_index()
+                    validate(json.loads(data)['docs'], page)
 
     @mock.patch('subprocess.Popen', autospec=True)
     def test_prebuild_index(self, mock_popen):
