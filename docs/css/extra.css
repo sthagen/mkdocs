@@ -57,3 +57,30 @@ body.homepage>div.container>div.row>div.col-md-9 {
     flex: 0 0 100%;
     max-width: 100%;
 }
+
+/* mkdocstrings */
+
+.doc-contents .field-body p:first-of-type {
+    display: inline;
+}
+
+.doc-label-class-attribute {
+    display: none;
+}
+
+h2.doc-heading {
+    font-size: 1.5rem;
+}
+h3.doc-heading {
+    font-size: 1.4rem;
+}
+h4.doc-heading {
+    font-size: 1.3rem;
+}
+h5.doc-heading {
+    font-size: 1.2rem;
+}
+
+.doc-contents {
+    padding-left: 0;
+}

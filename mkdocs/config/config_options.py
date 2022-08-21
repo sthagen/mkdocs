@@ -9,57 +9,38 @@ from urllib.parse import urlsplit, urlunsplit
 import markdown
 
 from mkdocs import plugins, theme, utils
-from mkdocs.config.base import Config, ValidationError
-
-
-class BaseConfigOption:
-    def __init__(self):
-        self.warnings = []
-        self.default = None
-
-    def is_required(self):
-        return False
-
-    def validate(self, value):
-        return self.run_validation(value)
-
-    def reset_warnings(self):
-        self.warnings = []
-
-    def pre_validation(self, config, key_name):
-        """
-        Before all options are validated, perform a pre-validation process.
-
-        The pre-validation process method should be implemented by subclasses.
-        """
-
-    def run_validation(self, value):
-        """
-        Perform validation for a value.
-
-        The run_validation method should be implemented by subclasses.
-        """
-        return value
-
-    def post_validation(self, config, key_name):
-        """
-        After all options have passed validation, perform a post-validation
-        process to do any additional changes dependent on other config values.
-
-        The post-validation process method should be implemented by subclasses.
-        """
+from mkdocs.config.base import BaseConfigOption, Config, ValidationError
 
 
 class SubConfig(BaseConfigOption):
-    def __init__(self, *config_options):
+    """
+    Subconfig Config Option
+
+    A set of `config_options` grouped under a single config option.
+    By default, validation errors and warnings resulting from validating
+    `config_options` are ignored (`validate=False`). Users should typically
+    enable validation with `validate=True`.
+    """
+
+    def __init__(self, *config_options, validate=False):
         super().__init__()
         self.default = {}
         self.config_options = config_options
+        self._do_validation = validate
 
     def run_validation(self, value):
         config = Config(self.config_options)
         config.load_dict(value)
-        config.validate()
+        failed, warnings = config.validate()
+
+        if self._do_validation:
+            # Capture errors and warnings
+            self.warnings = warnings
+            if failed:
+                # Get the first failing one
+                key, err = failed[0]
+                raise ValidationError(f"Sub-option {key!r} configuration error: {err}")
+
         return config
 
 

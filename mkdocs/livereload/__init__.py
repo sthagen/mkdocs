@@ -13,11 +13,12 @@ import threading
 import time
 import warnings
 import wsgiref.simple_server
+from typing import Callable, Optional
 
 import watchdog.events
 import watchdog.observers.polling
 
-_SCRIPT_TEMPLATE = """
+_SCRIPT_TEMPLATE_STR = """
 var livereload = function(epoch, requestId) {
     var req = new XMLHttpRequest();
     req.onloadend = function() {
@@ -39,7 +40,7 @@ var livereload = function(epoch, requestId) {
 }
 livereload(${epoch}, ${request_id});
 """
-_SCRIPT_TEMPLATE = string.Template(_SCRIPT_TEMPLATE)
+_SCRIPT_TEMPLATE = string.Template(_SCRIPT_TEMPLATE_STR)
 
 
 class _LoggerAdapter(logging.LoggerAdapter):
@@ -92,7 +93,7 @@ class LiveReloadServer(socketserver.ThreadingMixIn, wsgiref.simple_server.WSGISe
 
         self._watched_paths = {}  # Used as an ordered set.
 
-    def watch(self, path, func=None, recursive=True):
+    def watch(self, path: str, func: Optional[Callable] = None, recursive: bool = True):
         """Add the 'path' to watched paths, call the function and reload when any file changes under it."""
         path = os.path.abspath(path)
         if func in (None, self.builder):
