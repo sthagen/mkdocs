@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import os
 import sys
@@ -101,7 +103,7 @@ class Config(UserDict):
             try:
                 value = self.get(key)
                 self[key] = config_option.validate(value)
-                warnings.extend([(key, w) for w in config_option.warnings])
+                warnings.extend((key, w) for w in config_option.warnings)
                 config_option.reset_warnings()
             except ValidationError as e:
                 failed.append((key, e))
@@ -118,7 +120,7 @@ class Config(UserDict):
         for key, config_option in self._schema:
             try:
                 config_option.pre_validation(self, key_name=key)
-                warnings.extend([(key, w) for w in config_option.warnings])
+                warnings.extend((key, w) for w in config_option.warnings)
                 config_option.reset_warnings()
             except ValidationError as e:
                 failed.append((key, e))
@@ -132,7 +134,7 @@ class Config(UserDict):
         for key, config_option in self._schema:
             try:
                 config_option.post_validation(self, key_name=key)
-                warnings.extend([(key, w) for w in config_option.warnings])
+                warnings.extend((key, w) for w in config_option.warnings)
                 config_option.reset_warnings()
             except ValidationError as e:
                 failed.append((key, e))

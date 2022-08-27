@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gzip
 import logging
 import os
@@ -314,7 +316,7 @@ def build(config, live_server=False, dirty=False):
 
         counts = warning_counter.get_counts()
         if counts:
-            msg = ', '.join([f'{v} {k.lower()}s' for k, v in counts])
+            msg = ', '.join(f'{v} {k.lower()}s' for k, v in counts)
             raise Abort(f'\nAborted with {msg} in strict mode!')
 
         log.info('Documentation built in %.2f seconds', time() - start)
