@@ -1,16 +1,17 @@
+import functools
 import os
 import sys
 import unittest
-from tempfile import TemporaryDirectory
 from unittest import mock
 
 from mkdocs.structure.files import File, Files
 from mkdocs.structure.pages import Page
-from mkdocs.tests.base import dedent, load_config
+from mkdocs.tests.base import dedent, load_config, tempdir
+
+load_config = functools.lru_cache(maxsize=None)(load_config)
 
 
 class PageTests(unittest.TestCase):
-
     DOCS_DIR = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), '../integration/subpages/docs'
     )
@@ -412,22 +413,21 @@ class PageTests(unittest.TestCase):
         # Different File
         self.assertTrue(pg != Page('Foo', f2, cfg))
 
-    def test_BOM(self):
+    @tempdir()
+    def test_BOM(self, docs_dir):
         md_src = '# An UTF-8 encoded file with a BOM'
-        with TemporaryDirectory() as docs_dir:
-            # We don't use mkdocs.tests.base.tempdir decorator here due to uniqueness of this test.
-            cfg = load_config(docs_dir=docs_dir)
-            fl = File('index.md', cfg['docs_dir'], cfg['site_dir'], cfg['use_directory_urls'])
-            pg = Page(None, fl, cfg)
-            # Create an UTF-8 Encoded file with BOM (as Microsoft editors do). See #1186
-            with open(fl.abs_src_path, 'w', encoding='utf-8-sig') as f:
-                f.write(md_src)
-            # Now read the file.
-            pg.read_source(cfg)
-            # Ensure the BOM (`\ufeff`) is removed
-            self.assertNotIn('\ufeff', pg.markdown)
-            self.assertEqual(pg.markdown, md_src)
-            self.assertEqual(pg.meta, {})
+        cfg = load_config(docs_dir=docs_dir)
+        fl = File('index.md', cfg['docs_dir'], cfg['site_dir'], cfg['use_directory_urls'])
+        pg = Page(None, fl, cfg)
+        # Create an UTF-8 Encoded file with BOM (as Microsoft editors do). See #1186
+        with open(fl.abs_src_path, 'w', encoding='utf-8-sig') as f:
+            f.write(md_src)
+        # Now read the file.
+        pg.read_source(cfg)
+        # Ensure the BOM (`\ufeff`) is removed
+        self.assertNotIn('\ufeff', pg.markdown)
+        self.assertEqual(pg.markdown, md_src)
+        self.assertEqual(pg.meta, {})
 
     def test_page_edit_url(self):
         for case in [
@@ -590,7 +590,7 @@ class PageTests(unittest.TestCase):
             ),
         ]:
             with self.subTest(case['config']):
-                with self.assertLogs('mkdocs', level='WARN') as cm:
+                with self.assertLogs('mkdocs') as cm:
                     cfg = load_config(**case['config'])
                     fl = File(
                         'testing.md', cfg['docs_dir'], cfg['site_dir'], cfg['use_directory_urls']
@@ -630,8 +630,12 @@ class PageTests(unittest.TestCase):
         cfg = load_config()
         fl = File('missing.md', cfg['docs_dir'], cfg['site_dir'], cfg['use_directory_urls'])
         pg = Page('Foo', fl, cfg)
-        with self.assertRaises(OSError):
-            pg.read_source(cfg)
+        with self.assertLogs('mkdocs') as cm:
+            with self.assertRaises(OSError):
+                pg.read_source(cfg)
+        self.assertEqual(
+            '\n'.join(cm.output), 'ERROR:mkdocs.structure.pages:File not found: missing.md'
+        )
 
 
 class SourceDateEpochTests(unittest.TestCase):
@@ -653,7 +657,6 @@ class SourceDateEpochTests(unittest.TestCase):
 
 
 class RelativePathExtensionTests(unittest.TestCase):
-
     DOCS_DIR = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), '../integration/subpages/docs'
     )
@@ -781,17 +784,15 @@ class RelativePathExtensionTests(unittest.TestCase):
 
     @mock.patch('mkdocs.structure.pages.open', mock.mock_open(read_data='[link](non-existent.md)'))
     def test_bad_relative_html_link(self):
-        with self.assertLogs('mkdocs', level='WARNING') as cm:
+        with self.assertLogs('mkdocs') as cm:
             self.assertEqual(
                 self.get_rendered_result(['index.md']),
                 '<p><a href="non-existent.md">link</a></p>',
             )
         self.assertEqual(
-            cm.output,
-            [
-                "WARNING:mkdocs.structure.pages:Documentation file 'index.md' contains a link "
-                "to 'non-existent.md' which is not found in the documentation files."
-            ],
+            '\n'.join(cm.output),
+            "WARNING:mkdocs.structure.pages:Documentation file 'index.md' contains a link "
+            "to 'non-existent.md' which is not found in the documentation files.",
         )
 
     @mock.patch(

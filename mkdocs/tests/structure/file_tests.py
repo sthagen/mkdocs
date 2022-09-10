@@ -668,7 +668,12 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
     )
     def test_get_files_exclude_readme_with_index(self, tdir):
         config = load_config(docs_dir=tdir)
-        files = get_files(config)
+        with self.assertLogs('mkdocs') as cm:
+            files = get_files(config)
+        self.assertRegex(
+            '\n'.join(cm.output),
+            r"^WARNING:mkdocs.structure.files:Both index.md and README.md found. Skipping README.md .+$",
+        )
         expected = ['index.md', 'foo.md']
         self.assertIsInstance(files, Files)
         self.assertEqual(len(files), len(expected))
@@ -682,6 +687,15 @@ class TestFiles(PathAssertionMixin, unittest.TestCase):
         self.assertPathNotExists(dest_path)
         file.copy_file()
         self.assertPathIsFile(dest_path)
+
+    @tempdir(files={'test.txt': 'source content'})
+    def test_copy_file_same_file(self, dest_dir):
+        file = File('test.txt', dest_dir, dest_dir, use_directory_urls=False)
+        dest_path = os.path.join(dest_dir, 'test.txt')
+        file.copy_file()
+        self.assertPathIsFile(dest_path)
+        with open(dest_path, encoding='utf-8') as f:
+            self.assertEqual(f.read(), 'source content')
 
     @tempdir(files={'test.txt': 'destination content'})
     @tempdir(files={'test.txt': 'source content'})

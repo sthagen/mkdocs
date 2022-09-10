@@ -13,7 +13,8 @@ with open('README.md') as f:
 
 def get_version(package):
     """Return package version as listed in `__version__` in `init.py`."""
-    init_py = open(os.path.join(package, '__init__.py')).read()
+    with open(os.path.join(package, '__init__.py')) as f:
+        init_py = f.read()
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
 
@@ -70,7 +71,7 @@ setup(
         'watchdog>=2.0',
         'ghp-import>=1.0',
         'pyyaml_env_tag>=0.1',
-        'importlib_metadata>=4.3',
+        'importlib_metadata>=4.3; python_version < "3.10"',
         'packaging>=20.5',
         'mergedeep>=1.3.4'
     ],

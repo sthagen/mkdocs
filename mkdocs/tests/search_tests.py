@@ -270,7 +270,6 @@ class SearchPluginTests(unittest.TestCase):
 
 class SearchIndexTests(unittest.TestCase):
     def test_html_stripping(self):
-
         stripper = search_index.ContentParser()
 
         stripper.feed("<h1>Testing</h1><p>Content</p>")
@@ -278,7 +277,6 @@ class SearchIndexTests(unittest.TestCase):
         self.assertEqual(stripper.stripped_html, "Testing\nContent")
 
     def test_content_parser(self):
-
         parser = search_index.ContentParser()
 
         parser.feed('<h1 id="title">Title</h1>TEST')
@@ -289,7 +287,6 @@ class SearchIndexTests(unittest.TestCase):
         )
 
     def test_content_parser_no_id(self):
-
         parser = search_index.ContentParser()
 
         parser.feed("<h1>Title</h1>TEST")
@@ -300,7 +297,6 @@ class SearchIndexTests(unittest.TestCase):
         )
 
     def test_content_parser_content_before_header(self):
-
         parser = search_index.ContentParser()
 
         parser.feed("Content Before H1 <h1>Title</h1>TEST")
@@ -311,7 +307,6 @@ class SearchIndexTests(unittest.TestCase):
         )
 
     def test_content_parser_no_sections(self):
-
         parser = search_index.ContentParser()
 
         parser.feed("No H1 or H2<span>Title</span>TEST")
@@ -322,7 +317,6 @@ class SearchIndexTests(unittest.TestCase):
         """
         Test finding the relevant TOC item by the tag ID.
         """
-
         index = search_index.SearchIndex()
 
         md = dedent(
@@ -347,7 +341,6 @@ class SearchIndexTests(unittest.TestCase):
         self.assertEqual(toc_item3.title, "Heading 3")
 
     def test_create_search_index(self):
-
         html_content = """
         <h1 id="heading-1">Heading 1</h1>
         <p>Content 1</p>
@@ -531,7 +524,13 @@ class SearchIndexTests(unittest.TestCase):
             'docs': [],
             'config': {'prebuild_index': True},
         }
-        result = json.loads(index.generate_search_index())
+        with self.assertLogs('mkdocs') as cm:
+            result = json.loads(index.generate_search_index())
+        self.assertEqual(
+            '\n'.join(cm.output),
+            'WARNING:mkdocs.contrib.search.search_index:Failed to pre-build search index. Error: Some Error',
+        )
+
         self.assertEqual(mock_popen.call_count, 1)
         self.assertEqual(mock_popen_obj.communicate.call_count, 1)
         self.assertEqual(result, expected)
@@ -549,7 +548,13 @@ class SearchIndexTests(unittest.TestCase):
             'docs': [],
             'config': {'prebuild_index': True},
         }
-        result = json.loads(index.generate_search_index())
+        with self.assertLogs('mkdocs') as cm:
+            result = json.loads(index.generate_search_index())
+        self.assertEqual(
+            '\n'.join(cm.output),
+            'WARNING:mkdocs.contrib.search.search_index:Failed to pre-build search index. Error: ',
+        )
+
         self.assertEqual(mock_popen.call_count, 1)
         self.assertEqual(mock_popen_obj.communicate.call_count, 1)
         self.assertEqual(result, expected)
@@ -559,7 +564,7 @@ class SearchIndexTests(unittest.TestCase):
         # See https://stackoverflow.com/a/36501078/866026
         mock_popen.return_value = mock.Mock()
         mock_popen_obj = mock_popen.return_value
-        mock_popen_obj.communicate.return_value = ('', '')
+        mock_popen_obj.communicate.return_value = ('foo', 'bar')
         mock_popen_obj.returncode = 0
 
         index = search_index.SearchIndex(prebuild_index=True)
@@ -567,7 +572,13 @@ class SearchIndexTests(unittest.TestCase):
             'docs': [],
             'config': {'prebuild_index': True},
         }
-        result = json.loads(index.generate_search_index())
+        with self.assertLogs('mkdocs') as cm:
+            result = json.loads(index.generate_search_index())
+        self.assertEqual(
+            '\n'.join(cm.output),
+            'WARNING:mkdocs.contrib.search.search_index:Failed to pre-build search index. Error: ',
+        )
+
         self.assertEqual(mock_popen.call_count, 1)
         self.assertEqual(mock_popen_obj.communicate.call_count, 0)
         self.assertEqual(result, expected)
@@ -612,7 +623,8 @@ class SearchIndexTests(unittest.TestCase):
             'docs': [],
             'config': {'prebuild_index': 'python', 'lang': 'en'},
         }
-        result = json.loads(index.generate_search_index())
+        with self.assertLogs('mkdocs', level='WARNING'):
+            result = json.loads(index.generate_search_index())
         self.assertEqual(result, expected)
 
     @mock.patch('subprocess.Popen', autospec=True)

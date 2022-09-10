@@ -4,10 +4,8 @@ import datetime
 import logging
 import os
 import posixpath
-import shutil
 import stat
 import sys
-import tempfile
 import unittest
 from unittest import mock
 
@@ -114,7 +112,6 @@ class UtilsTests(unittest.TestCase):
         self.assertEqual(utils.get_relative_url('/', '/.'), './')
 
     def test_create_media_urls(self):
-
         expected_results = {
             'https://media.cdn.org/jq.js': [
                 'https://media.cdn.org/jq.js',
@@ -182,7 +179,6 @@ class UtilsTests(unittest.TestCase):
             self.assertEqual([v[i] for v in expected_results.values()], urls)
 
     def test_create_media_urls_use_directory_urls(self):
-
         expected_results = {
             'https://media.cdn.org/jq.js': [
                 'https://media.cdn.org/jq.js',
@@ -251,7 +247,6 @@ class UtilsTests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
     def test_create_media_urls_windows(self):
-
         expected_results = {
             'local\\windows\\file\\jquery.js': [
                 'local/windows/file/jquery.js',
@@ -279,9 +274,10 @@ class UtilsTests(unittest.TestCase):
             ),
         ]
 
-        for i, page in enumerate(pages):
-            urls = utils.create_media_urls(expected_results.keys(), page)
-            self.assertEqual([v[i] for v in expected_results.values()], urls)
+        with self.assertLogs('mkdocs', level='WARNING'):
+            for i, page in enumerate(pages):
+                urls = utils.create_media_urls(expected_results.keys(), page)
+                self.assertEqual([v[i] for v in expected_results.values()], urls)
 
     def test_reduce_list(self):
         self.assertEqual(
@@ -290,12 +286,12 @@ class UtilsTests(unittest.TestCase):
         )
 
     def test_get_themes(self):
+        themes = utils.get_theme_names()
+        self.assertIn('mkdocs', themes)
+        self.assertIn('readthedocs', themes)
 
-        self.assertEqual(sorted(utils.get_theme_names()), ['mkdocs', 'readthedocs'])
-
-    @mock.patch('importlib_metadata.entry_points', autospec=True)
+    @mock.patch('mkdocs.utils.entry_points', autospec=True)
     def test_get_theme_dir(self, mock_iter):
-
         path = 'some/path'
 
         theme = mock.Mock()
@@ -308,13 +304,11 @@ class UtilsTests(unittest.TestCase):
         self.assertEqual(utils.get_theme_dir(theme.name), os.path.abspath(path))
 
     def test_get_theme_dir_keyerror(self):
-
         with self.assertRaises(KeyError):
             utils.get_theme_dir('nonexistanttheme')
 
-    @mock.patch('importlib_metadata.entry_points', autospec=True)
+    @mock.patch('mkdocs.utils.entry_points', autospec=True)
     def test_get_theme_dir_importerror(self, mock_iter):
-
         theme = mock.Mock()
         theme.name = 'mkdocs2'
         theme.dist.name = 'mkdocs2'
@@ -325,9 +319,8 @@ class UtilsTests(unittest.TestCase):
         with self.assertRaises(ImportError):
             utils.get_theme_dir(theme.name)
 
-    @mock.patch('importlib_metadata.entry_points', autospec=True)
+    @mock.patch('mkdocs.utils.entry_points', autospec=True)
     def test_get_themes_warning(self, mock_iter):
-
         theme1 = mock.Mock()
         theme1.name = 'mkdocs2'
         theme1.dist.name = 'mkdocs2'
@@ -340,11 +333,17 @@ class UtilsTests(unittest.TestCase):
 
         mock_iter.return_value = [theme1, theme2]
 
-        self.assertEqual(sorted(utils.get_theme_names()), sorted(['mkdocs2']))
+        with self.assertLogs('mkdocs') as cm:
+            theme_names = utils.get_theme_names()
+        self.assertEqual(
+            '\n'.join(cm.output),
+            "WARNING:mkdocs.utils:A theme named 'mkdocs2' is provided by the Python "
+            "packages 'mkdocs3' and 'mkdocs2'. The one in 'mkdocs3' will be used.",
+        )
+        self.assertCountEqual(theme_names, ['mkdocs2'])
 
-    @mock.patch('importlib_metadata.entry_points', autospec=True)
+    @mock.patch('mkdocs.utils.entry_points', autospec=True)
     def test_get_themes_error(self, mock_iter):
-
         theme1 = mock.Mock()
         theme1.name = 'mkdocs'
         theme1.dist.name = 'mkdocs'
@@ -357,7 +356,11 @@ class UtilsTests(unittest.TestCase):
 
         mock_iter.return_value = [theme1, theme2]
 
-        with self.assertRaises(exceptions.ConfigurationError):
+        with self.assertRaisesRegex(
+            exceptions.ConfigurationError,
+            "The theme 'mkdocs' is a builtin theme but the package 'mkdocs2' "
+            "attempts to provide a theme with the same name.",
+        ):
             utils.get_theme_names()
 
     def test_nest_paths(self, j=posixpath.join):
@@ -398,7 +401,6 @@ class UtilsTests(unittest.TestCase):
         self.test_nest_paths(os.path.join)
 
     def test_unicode_yaml(self):
-
         yaml_src = dedent(
             '''
             key: value
@@ -413,7 +415,6 @@ class UtilsTests(unittest.TestCase):
 
     @mock.patch.dict(os.environ, {'VARNAME': 'Hello, World!', 'BOOLVAR': 'false'})
     def test_env_var_in_yaml(self):
-
         yaml_src = dedent(
             '''
             key1: !ENV VARNAME
@@ -424,12 +425,9 @@ class UtilsTests(unittest.TestCase):
             '''
         )
         config = utils.yaml_load(yaml_src)
-        self.assertIsInstance(config['key1'], str)
         self.assertEqual(config['key1'], 'Hello, World!')
         self.assertIsNone(config['key2'])
-        self.assertIsInstance(config['key3'], str)
         self.assertEqual(config['key3'], 'default')
-        self.assertIsInstance(config['key4'], str)
         self.assertEqual(config['key4'], 'Hello, World!')
         self.assertIs(config['key5'], False)
 
@@ -460,7 +458,9 @@ class UtilsTests(unittest.TestCase):
             with self.assertRaises(exceptions.ConfigurationError):
                 utils.yaml_load(fd)
 
-    def test_copy_files(self):
+    @tempdir()
+    @tempdir()
+    def test_copy_files(self, src_dir, dst_dir):
         cases = [
             dict(
                 src_path='foo.txt',
@@ -479,32 +479,24 @@ class UtilsTests(unittest.TestCase):
             ),
         ]
 
-        src_dir = tempfile.mkdtemp()
-        dst_dir = tempfile.mkdtemp()
+        for case in cases:
+            src, dst, expected = case['src_path'], case['dst_path'], case['expected']
+            with self.subTest(src):
+                src = os.path.join(src_dir, src)
+                with open(src, 'w') as f:
+                    f.write('content')
+                dst = os.path.join(dst_dir, dst)
+                utils.copy_file(src, dst)
+                self.assertTrue(os.path.isfile(os.path.join(dst_dir, expected)))
 
-        try:
-            for case in cases:
-                src, dst, expected = case['src_path'], case['dst_path'], case['expected']
-                with self.subTest(src):
-                    src = os.path.join(src_dir, src)
-                    with open(src, 'w') as f:
-                        f.write('content')
-                    dst = os.path.join(dst_dir, dst)
-                    utils.copy_file(src, dst)
-                    self.assertTrue(os.path.isfile(os.path.join(dst_dir, expected)))
-        finally:
-            shutil.rmtree(src_dir)
-            shutil.rmtree(dst_dir)
-
-    def test_copy_files_without_permissions(self):
+    @tempdir()
+    @tempdir()
+    def test_copy_files_without_permissions(self, src_dir, dst_dir):
         cases = [
             dict(src_path='foo.txt', expected='foo.txt'),
             dict(src_path='bar.txt', expected='bar.txt'),
             dict(src_path='baz.txt', expected='baz.txt'),
         ]
-
-        src_dir = tempfile.mkdtemp()
-        dst_dir = tempfile.mkdtemp()
 
         try:
             for case in cases:
@@ -528,8 +520,6 @@ class UtilsTests(unittest.TestCase):
                 src = os.path.join(src_dir, case['src_path'])
                 if os.path.exists(src):
                     os.chmod(src, stat.S_IRUSR | stat.S_IWUSR)
-            shutil.rmtree(src_dir)
-            shutil.rmtree(dst_dir)
 
     def test_mm_meta_data(self):
         doc = dedent(

@@ -5,13 +5,18 @@ Implements the plugin API for MkDocs.
 from __future__ import annotations
 
 import logging
+import sys
 from collections import OrderedDict
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, TypeVar, overload
+from typing import Any, Callable, Dict, List, Optional, Tuple, TypeVar, overload
 
-import importlib_metadata
+if sys.version_info >= (3, 10):
+    from importlib.metadata import EntryPoint, entry_points
+else:
+    from importlib_metadata import EntryPoint, entry_points
+
 import jinja2.environment
 
-from mkdocs.config.base import BaseConfigOption, Config
+from mkdocs.config.base import Config, ConfigErrors, ConfigWarnings, PlainConfigSchema
 from mkdocs.livereload import LiveReloadServer
 from mkdocs.structure.files import Files
 from mkdocs.structure.nav import Navigation
@@ -20,10 +25,10 @@ from mkdocs.structure.pages import Page
 log = logging.getLogger('mkdocs.plugins')
 
 
-def get_plugins():
+def get_plugins() -> Dict[str, EntryPoint]:
     """Return a dict of all installed Plugins as {name: EntryPoint}."""
 
-    plugins = importlib_metadata.entry_points(group='mkdocs.plugins')
+    plugins = entry_points(group='mkdocs.plugins')
 
     # Allow third-party plugins to override core plugins
     pluginmap = {}
@@ -43,12 +48,12 @@ class BasePlugin:
     All plugins should subclass this class.
     """
 
-    config_scheme: Sequence[Tuple[str, BaseConfigOption]] = ()
+    config_scheme: PlainConfigSchema = ()
     config: Config = {}  # type: ignore[assignment]
 
     def load_config(
         self, options: Dict[str, Any], config_file_path: Optional[str] = None
-    ) -> Tuple[list, list]:
+    ) -> Tuple[ConfigErrors, ConfigWarnings]:
         """Load config from a dict of options. Returns a tuple of (errors, warnings)."""
 
         self.config = Config(schema=self.config_scheme, config_file_path=config_file_path)
@@ -350,15 +355,15 @@ class PluginCollection(OrderedDict):
     by calling `run_event`.
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.events = {k: [] for k in EVENTS}
+        self.events: Dict[str, List[Callable]] = {k: [] for k in EVENTS}
 
-    def _register_event(self, event_name, method):
+    def _register_event(self, event_name: str, method: Callable) -> None:
         """Register a method for an event."""
         self.events[event_name].append(method)
 
-    def __setitem__(self, key: str, value: BasePlugin, **kwargs):
+    def __setitem__(self, key: str, value: BasePlugin, **kwargs) -> None:
         if not isinstance(value, BasePlugin):
             raise TypeError(
                 f'{self.__module__}.{self.__name__} only accepts values which'
@@ -380,7 +385,7 @@ class PluginCollection(OrderedDict):
     def run_event(self, name: str, item: T, **kwargs) -> T:
         ...
 
-    def run_event(self, name: str, item: T = None, **kwargs) -> Optional[T]:
+    def run_event(self, name: str, item=None, **kwargs) -> Optional[T]:
         """
         Run all registered methods of an event.
 
@@ -389,7 +394,6 @@ class PluginCollection(OrderedDict):
         All other keywords are variables for context, but would not generally
         be modified by the event method.
         """
-
         pass_item = item is not None
         for method in self.events[name]:
             if pass_item:

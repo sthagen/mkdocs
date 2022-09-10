@@ -7,17 +7,20 @@ from unittest import mock
 
 from mkdocs import config, plugins
 from mkdocs.commands import build
-from mkdocs.config import config_options
+from mkdocs.config import base, config_options
+from mkdocs.config.base import ValidationError
 from mkdocs.exceptions import Abort, BuildError, PluginError
 from mkdocs.tests.base import load_config
 
 
+class _DummyPluginConfig:
+    foo = config_options.Type(str, default='default foo')
+    bar = config_options.Type(int, default=0)
+    dir = config_options.Dir(exists=False)
+
+
 class DummyPlugin(plugins.BasePlugin):
-    config_scheme = (
-        ('foo', config_options.Type(str, default='default foo')),
-        ('bar', config_options.Type(int, default=0)),
-        ('dir', config_options.Dir(exists=False)),
-    )
+    config_scheme = base.get_schema(_DummyPluginConfig)
 
     def on_pre_page(self, content, **kwargs):
         """modify page content by prepending `foo` config value."""
@@ -64,22 +67,26 @@ class TestPluginClass(unittest.TestCase):
         self.assertEqual(warnings, [])
 
     def test_invalid_plugin_options(self):
-
         plugin = DummyPlugin()
         errors, warnings = plugin.load_config({'foo': 42})
-        self.assertEqual(len(errors), 1)
-        self.assertIn('foo', errors[0])
+        self.assertEqual(
+            errors,
+            [('foo', ValidationError("Expected type: <class 'str'> but received: <class 'int'>"))],
+        )
         self.assertEqual(warnings, [])
 
         errors, warnings = plugin.load_config({'bar': 'a string'})
-        self.assertEqual(len(errors), 1)
-        self.assertIn('bar', errors[0])
+        self.assertEqual(
+            errors,
+            [('bar', ValidationError("Expected type: <class 'int'> but received: <class 'str'>"))],
+        )
         self.assertEqual(warnings, [])
 
         errors, warnings = plugin.load_config({'invalid_key': 'value'})
         self.assertEqual(errors, [])
-        self.assertEqual(len(warnings), 1)
-        self.assertIn('invalid_key', warnings[0])
+        self.assertEqual(
+            warnings, [('invalid_key', "Unrecognised configuration name: invalid_key")]
+        )
 
 
 class TestPluginCollection(unittest.TestCase):
@@ -206,19 +213,23 @@ class TestPluginCollection(unittest.TestCase):
 
         cfg = load_config()
         cfg['plugins']['errorplugin'] = PluginRaisingError(error_on='pre_page')
-        self.assertRaises(Abort, build.build, cfg)
+        with self.assertLogs('mkdocs', level='ERROR'):
+            self.assertRaises(Abort, build.build, cfg)
 
         cfg = load_config()
         cfg['plugins']['errorplugin'] = PluginRaisingError(error_on='page_markdown')
-        self.assertRaises(Abort, build.build, cfg)
+        with self.assertLogs('mkdocs', level='ERROR'):
+            self.assertRaises(Abort, build.build, cfg)
 
         cfg = load_config()
         cfg['plugins']['errorplugin'] = PluginRaisingError(error_on='page_content')
-        self.assertRaises(Abort, build.build, cfg)
+        with self.assertLogs('mkdocs', level='ERROR'):
+            self.assertRaises(Abort, build.build, cfg)
 
         cfg = load_config()
         cfg['plugins']['errorplugin'] = PluginRaisingError(error_on='post_page')
-        self.assertRaises(ValueError, build.build, cfg)
+        with self.assertLogs('mkdocs', level='ERROR'):
+            self.assertRaises(ValueError, build.build, cfg)
 
         cfg = load_config()
         cfg['plugins']['errorplugin'] = PluginRaisingError(error_on='')
@@ -239,10 +250,9 @@ MockEntryPoint = mock.Mock()
 MockEntryPoint.configure_mock(**{'name': 'sample', 'load.return_value': DummyPlugin})
 
 
-@mock.patch('importlib_metadata.entry_points', return_value=[MockEntryPoint])
+@mock.patch('mkdocs.plugins.entry_points', return_value=[MockEntryPoint])
 class TestPluginConfig(unittest.TestCase):
     def test_plugin_config_without_options(self, mock_class):
-
         cfg = {'plugins': ['sample']}
         option = config.config_options.Plugins()
         cfg['plugins'] = option.validate(cfg['plugins'])
@@ -258,7 +268,6 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(cfg['plugins']['sample'].config, expected)
 
     def test_plugin_config_with_options(self, mock_class):
-
         cfg = {
             'plugins': [
                 {
@@ -283,7 +292,6 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(cfg['plugins']['sample'].config, expected)
 
     def test_plugin_config_as_dict(self, mock_class):
-
         cfg = {
             'plugins': {
                 'sample': {
@@ -347,21 +355,18 @@ class TestPluginConfig(unittest.TestCase):
         self.assertEqual(cfg['plugins']['sample'].config, expected)
 
     def test_plugin_config_uninstalled(self, mock_class):
-
         cfg = {'plugins': ['uninstalled']}
         option = config.config_options.Plugins()
         with self.assertRaises(config.base.ValidationError):
             option.validate(cfg['plugins'])
 
     def test_plugin_config_not_list(self, mock_class):
-
         cfg = {'plugins': 'sample'}  # should be a list
         option = config.config_options.Plugins()
         with self.assertRaises(config.base.ValidationError):
             option.validate(cfg['plugins'])
 
     def test_plugin_config_multivalue_dict(self, mock_class):
-
         cfg = {
             'plugins': [
                 {
@@ -378,7 +383,6 @@ class TestPluginConfig(unittest.TestCase):
             option.validate(cfg['plugins'])
 
     def test_plugin_config_not_string_or_dict(self, mock_class):
-
         cfg = {
             'plugins': [('not a string or dict',)],
         }
@@ -387,7 +391,6 @@ class TestPluginConfig(unittest.TestCase):
             option.validate(cfg['plugins'])
 
     def test_plugin_config_options_not_dict(self, mock_class):
-
         cfg = {
             'plugins': [
                 {
