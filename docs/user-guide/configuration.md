@@ -164,38 +164,38 @@ And the conversion flag `!q` is available, to percent-encode the field:
 
 * `{path!q}`, e.g. `foo%2Fbar.md`
 
-Here are some suggested configurations that can be useful:
-
-GitHub Wiki:  
-(e.g. `https://github.com/project/repo/wiki/foo/bar/_edit`)
-
-```yaml
-repo_url: 'https://github.com/project/repo/wiki'
-edit_uri_template: '{path_noext}/_edit'
-```
-
-BitBucket editor:  
-(e.g. `https://bitbucket.org/project/repo/src/master/docs/foo/bar.md?mode=edit`)
-
-```yaml
-repo_url: 'https://bitbucket.org/project/repo/'
-edit_uri_template: 'src/master/docs/{path}?mode=edit'
-```
-
-GitLab Static Site Editor:  
-(e.g. `https://gitlab.com/project/repo/-/sse/master/docs%2Ffoo%2bar.md`)
-
-```yaml
-repo_url: 'https://gitlab.com/project/repo'
-edit_uri_template: '-/sse/master/docs%2F{path!q}'
-```
-
-GitLab Web IDE:  
-(e.g. `https://gitlab.com/-/ide/project/repo/edit/master/-/docs/foo/bar.md`)
-
-```yaml
-edit_uri_template: 'https://gitlab.com/-/ide/project/repo/edit/master/-/docs/{path}'
-```
+>? NOTE: **Suggested useful configurations:**
+>
+> *   GitHub Wiki:  
+>     (e.g. `https://github.com/project/repo/wiki/foo/bar/_edit`)
+>
+>     ```yaml
+>     repo_url: 'https://github.com/project/repo/wiki'
+>     edit_uri_template: '{path_noext}/_edit'
+>     ```
+>
+> *   BitBucket editor:  
+>     (e.g. `https://bitbucket.org/project/repo/src/master/docs/foo/bar.md?mode=edit`)
+>
+>     ```yaml
+>     repo_url: 'https://bitbucket.org/project/repo/'
+>     edit_uri_template: 'src/master/docs/{path}?mode=edit'
+>     ```
+>
+> *   GitLab Static Site Editor:  
+>     (e.g. `https://gitlab.com/project/repo/-/sse/master/docs%2Ffoo%2bar.md`)
+>
+>     ```yaml
+>     repo_url: 'https://gitlab.com/project/repo'
+>     edit_uri_template: '-/sse/master/docs%2F{path!q}'
+>     ```
+>
+> *   GitLab Web IDE:  
+>     (e.g. `https://gitlab.com/-/ide/project/repo/edit/master/-/docs/foo/bar.md`)
+>
+>     ```yaml
+>     edit_uri_template: 'https://gitlab.com/-/ide/project/repo/edit/master/-/docs/{path}'
+>     ```
 
 **default**: `null`
 
@@ -377,7 +377,9 @@ the root of your local file system.
 > keep the *source* files under version control. For example, if using `git`
 > you might add the following line to your `.gitignore` file:
 >
->     site/
+> ```text
+> site/
+> ```
 >
 > If you're using another source code control tool, you'll want to check its
 > documentation on how to ignore specific directories.
@@ -480,6 +482,8 @@ creates links that point directly to the target *file* rather than the target
 Determines how warnings are handled. Set to `true` to halt processing when a
 warning is raised. Set to `false` to print a warning and continue processing.
 
+This is also available as a command line flag: `--strict`.
+
 **default**: `false`
 
 ### dev_addr
@@ -576,6 +580,58 @@ This alternative syntax is required if you intend to override some options via
 > and available configuration options.
 
 **default**: `[]` (an empty list).
+
+### hooks
+
+NEW: **New in version 1.4.**
+
+A list of paths to Python scripts (relative to `mkdocs.yml`) that are loaded and used as [plugin](#plugins) instances.
+
+For example:
+
+```yaml
+hooks:
+    - my_hooks.py
+```
+
+Then the file *my_hooks.py* can contain any [plugin event handlers](../dev-guide/plugins.md#events) (without `self`), e.g.:
+
+```python
+def on_page_markdown(markdown, **kwargs):
+    return markdown.replace('a', 'z')
+```
+
+>? EXAMPLE: **Advanced example:**
+>
+> This produces warnings based on the Markdown content (and warnings are fatal in [strict](#strict) mode):
+>
+> ```python
+> import logging, re
+> import mkdocs.plugins
+>
+> log = logging.getLogger('mkdocs')
+>
+> @mkdocs.plugins.event_priority(-50)
+> def on_page_markdown(markdown, page, **kwargs):
+>     path = page.file.src_uri
+>     for m in re.finditer(r'\bhttp://[^) ]+', markdown):
+>         log.warning(f"Documentation file '{path}' contains a non-HTTPS link: {m[0]}")
+> ```
+
+This does not enable any new abilities compared to [plugins][], it only simplifies one-off usages, as these don't need to be *installed* like plugins do.
+
+Note that for `mkdocs serve` the hook module will *not* be reloaded on each build.
+
+You might have seen this feature in the [mkdocs-simple-hooks plugin](https://github.com/aklajnert/mkdocs-simple-hooks). If using standard method names, it can be directly replaced, e.g.:
+
+```diff
+-plugins:
+-  - mkdocs-simple-hooks:
+-      hooks:
+-        on_page_markdown: 'my_hooks:on_page_markdown'
++hooks:
++  - my_hooks.py
+```
 
 ### plugins
 

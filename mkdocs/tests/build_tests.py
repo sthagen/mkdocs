@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import unittest
 from unittest import mock
 
@@ -16,9 +15,7 @@ from mkdocs.utils import meta
 def build_page(title, path, config, md_src=''):
     """Helper which returns a Page object."""
 
-    files = Files(
-        [File(path, config['docs_dir'], config['site_dir'], config['use_directory_urls'])]
-    )
+    files = Files([File(path, config.docs_dir, config.site_dir, config.use_directory_urls)])
     page = Page(title, list(files)[0], config)
     # Fake page.read_source()
     page.markdown, page.meta = meta.get_data(md_src)
@@ -27,7 +24,7 @@ def build_page(title, path, config, md_src=''):
 
 class BuildTests(PathAssertionMixin, unittest.TestCase):
     def _get_env_with_null_translations(self, config):
-        env = config['theme'].get_env()
+        env = config.theme.get_env()
         env.add_extension('jinja2.ext.i18n')
         env.install_null_translations()
         return env
@@ -180,7 +177,8 @@ class BuildTests(PathAssertionMixin, unittest.TestCase):
         self.assertEqual(context['extra_css'], ['../../style.css'])
         self.assertEqual(context['extra_javascript'], ['../../script.js'])
 
-    @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
+    # TODO: This shouldn't pass on Linux
+    # @unittest.skipUnless(sys.platform.startswith("win"), "requires Windows")
     def test_context_extra_css_path_warning(self):
         nav_cfg = [
             {'Home': 'index.md'},
@@ -200,8 +198,8 @@ class BuildTests(PathAssertionMixin, unittest.TestCase):
         self.assertEqual(context['extra_css'], ['assets/style.css'])
         self.assertEqual(
             '\n'.join(cm.output),
-            "WARNING:mkdocs.utils:Path 'assets\\style.css' uses OS-specific separator '\\', "
-            "change it to '/' so it is recognized on other systems.",
+            "WARNING:mkdocs.utils:Path 'assets\\style.css' uses OS-specific separator '\\'. "
+            "That will be unsupported in a future release. Please change it to '/'.",
         )
 
     def test_context_extra_css_js_no_page(self):

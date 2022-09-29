@@ -38,7 +38,7 @@ as you work on it. Make sure you're in the same directory as the `mkdocs.yml`
 configuration file, and then start the server by running the `mkdocs serve`
 command:
 
-```bash
+```console
 $ mkdocs serve
 INFO    -  Building documentation...
 INFO    -  Cleaning site directory
@@ -156,7 +156,7 @@ mkdocs build
 This will create a new directory, named `site`. Take a look inside the
 directory:
 
-```bash
+```console
 $ ls site
 about  fonts  index.html  license  search.html
 css    img    js          mkdocs   sitemap.xml
@@ -218,4 +218,4 @@ To get help with MkDocs, please use the [GitHub discussions] or [GitHub issues].
 [site_name]: user-guide/configuration.md#site_name
 [site_url]: user-guide/configuration.md#site_url
 [theme]: user-guide/configuration.md#theme
-[User Guide]: user-guide/index.md
+[User Guide]: user-guide/README.md

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import posixpath
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Optional, Union
 from urllib.parse import unquote as urlunquote
 from urllib.parse import urljoin, urlsplit, urlunsplit
 from xml.etree.ElementTree import Element
@@ -13,20 +13,23 @@ from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from markdown.util import AMP_SUBSTITUTE
 
-from mkdocs.config.base import Config
 from mkdocs.structure.files import File, Files
 from mkdocs.structure.toc import get_toc
 from mkdocs.utils import get_build_date, get_markdown_title, meta
 
 if TYPE_CHECKING:
+    from mkdocs.config.defaults import MkDocsConfig
     from mkdocs.structure.nav import Section
     from mkdocs.structure.toc import TableOfContents
+
 
 log = logging.getLogger(__name__)
 
 
 class Page:
-    def __init__(self, title: Optional[str], file: File, config: Config) -> None:
+    def __init__(
+        self, title: Optional[str], file: File, config: Union[MkDocsConfig, Mapping[str, Any]]
+    ) -> None:
         file.page = self
         self.file = file
         self.title = title
@@ -79,7 +82,7 @@ class Page:
     """An iterable object representing the Table of contents for a page. Each item in
     the `toc` is an [`AnchorLink`][mkdocs.structure.toc.AnchorLink]."""
 
-    meta: Mapping[str, Any]
+    meta: MutableMapping[str, Any]
     """A mapping of the metadata included at the top of the markdown page."""
 
     @property
@@ -206,7 +209,7 @@ class Page:
         else:
             self.edit_url = None
 
-    def read_source(self, config: Config) -> None:
+    def read_source(self, config: MkDocsConfig) -> None:
         source = config['plugins'].run_event('page_read_source', page=self, config=config)
         if source is None:
             try:
@@ -253,7 +256,7 @@ class Page:
 
         self.title = title
 
-    def render(self, config: Config, files: Files) -> None:
+    def render(self, config: MkDocsConfig, files: Files) -> None:
         """
         Convert the Markdown source file to HTML as per the config.
         """
