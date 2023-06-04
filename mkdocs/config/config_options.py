@@ -7,7 +7,6 @@ import string
 import sys
 import traceback
 import types
-import typing as t
 import warnings
 from collections import Counter, UserString
 from typing import (
@@ -821,14 +820,10 @@ class Nav(OptionallyRequired):
             return f"a {type(value).__name__}: {value!r}"
 
 
-class Private(BaseConfigOption):
-    """
-    Private Config Option
+class Private(Generic[T], BaseConfigOption[T]):
+    """A config option that can only be populated programmatically. Raises an error if set by the user."""
 
-    A config option only for internal use. Raises an error if set by the user.
-    """
-
-    def run_validation(self, value: object):
+    def run_validation(self, value: object) -> None:
         if value is not None:
             raise ValidationError('For internal use only.')
 
@@ -855,7 +850,7 @@ class MarkdownExtensions(OptionallyRequired[List[str]]):
         self.builtins = builtins or []
         self.configkey = configkey
 
-    def validate_ext_cfg(self, ext, cfg):
+    def validate_ext_cfg(self, ext: object, cfg: object) -> None:
         if not isinstance(ext, str):
             raise ValidationError(f"'{ext}' is not a valid Markdown Extension name.")
         if not cfg:
@@ -864,7 +859,7 @@ class MarkdownExtensions(OptionallyRequired[List[str]]):
             raise ValidationError(f"Invalid config options for Markdown Extension '{ext}'.")
         self.configdata[ext] = cfg
 
-    def run_validation(self, value: object):
+    def run_validation(self, value: object) -> list[str]:
         self.configdata: dict[str, dict] = {}
         if not isinstance(value, (list, tuple, dict)):
             raise ValidationError('Invalid Markdown Extensions configuration')
@@ -1040,7 +1035,7 @@ class Hooks(BaseConfigOption[List[types.ModuleType]]):
     def run_validation(self, value: object) -> Mapping[str, Any]:
         paths = self._base_option.validate(value)
         self.warnings.extend(self._base_option.warnings)
-        value = t.cast(List[str], value)
+        assert isinstance(value, list)
 
         hooks = {}
         for name, path in zip(value, paths):
