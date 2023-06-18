@@ -46,6 +46,10 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
 
 
 def _enable_warnings():
+    from mkdocs.commands import build
+
+    build.log.addFilter(utils.DuplicateFilter())
+
     warnings.simplefilter('module', DeprecationWarning)
     warnings.showwarning = _showwarning
 
@@ -111,8 +115,9 @@ site_dir_help = "The directory to output the result of the documentation build."
 use_directory_urls_help = "Use directory URLs when building pages (the default)."
 reload_help = "Enable the live reloading in the development server (this is the default)"
 no_reload_help = "Disable the live reloading in the development server."
-dirty_reload_help = (
-    "Enable the live reloading in the development server, but only re-build files that have changed"
+serve_dirty_help = "Only re-build files that have changed."
+serve_clean_help = (
+    "Build the site without any effects of `mkdocs serve` - pure `mkdocs build`, then serve."
 )
 commit_message_help = (
     "A commit message to use when committing to the "
@@ -187,7 +192,7 @@ common_config_options = add_options(
     click.option('-f', '--config-file', type=click.File('rb'), help=config_help),
     # Don't override config value if user did not specify --strict flag
     # Conveniently, load_config drops None values
-    click.option('-s', '--strict', is_flag=True, default=None, help=strict_help),
+    click.option('-s', '--strict/--no-strict', is_flag=True, default=None, help=strict_help),
     click.option('-t', '--theme', type=click.Choice(theme_choices), help=theme_help),
     # As with --strict, set the default to None so that this doesn't incorrectly
     # override the config file
@@ -220,21 +225,23 @@ def cli():
 
 @cli.command(name="serve")
 @click.option('-a', '--dev-addr', help=dev_addr_help, metavar='<IP:PORT>')
-@click.option('--livereload', 'livereload', flag_value='livereload', help=reload_help, default=True)
+@click.option('--livereload', 'livereload', flag_value='livereload', default=True, hidden=True)
 @click.option('--no-livereload', 'livereload', flag_value='no-livereload', help=no_reload_help)
-@click.option('--dirtyreload', 'livereload', flag_value='dirty', help=dirty_reload_help)
+@click.option('--dirtyreload', 'build_type', flag_value='dirty', hidden=True)
+@click.option('--dirty', 'build_type', flag_value='dirty', help=serve_dirty_help)
+@click.option('-c', '--clean', 'build_type', flag_value='clean', help=serve_clean_help)
 @click.option('--watch-theme', help=watch_theme_help, is_flag=True)
 @click.option(
     '-w', '--watch', help=watch_help, type=click.Path(exists=True), multiple=True, default=[]
 )
 @common_config_options
 @common_options
-def serve_command(dev_addr, livereload, watch, **kwargs):
+def serve_command(**kwargs):
     """Run the builtin development server"""
     from mkdocs.commands import serve
 
     _enable_warnings()
-    serve.serve(dev_addr=dev_addr, livereload=livereload, watch=watch, **kwargs)
+    serve.serve(**kwargs)
 
 
 @cli.command(name="build")
