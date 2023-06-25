@@ -1193,8 +1193,8 @@ class SubConfigTest(TestCase):
             with self.subTest(val):
                 with self.expect_error(
                     option=re.compile(
-                        r"The configuration is invalid. The expected type was a key value mapping "
-                        r"\(a python dict\) but we got an object of type: .+"
+                        r"The configuration is invalid. Expected a key-value mapping "
+                        r"\(dict\) but received: .+"
                     )
                 ):
                     self.get_config(Schema, {'option': val})
@@ -1261,6 +1261,23 @@ class SubConfigTest(TestCase):
 
         conf = self.get_config(Schema, {'option': {'cc': 'foo'}})
         self.assertEqual(conf['option'], {'cc': 'foo'})
+
+    def test_config_file_path_pass_through(self):
+        """Necessary to ensure FilesystemObject validates the correct path"""
+
+        passed_config_path = None
+
+        class SubType(c.BaseConfigOption):
+            def pre_validation(self, config, key_name):
+                nonlocal passed_config_path
+                passed_config_path = config.config_file_path
+
+        class Schema:
+            sub = c.SubConfig(('opt', SubType()))
+
+        config_path = "foo/mkdocs.yaml"
+        self.get_config(Schema, {"sub": {"opt": "bar"}}, config_file_path=config_path)
+        self.assertEqual(passed_config_path, config_path)
 
 
 class ConfigItemsTest(TestCase):
@@ -1342,8 +1359,8 @@ class ConfigItemsTest(TestCase):
             conf = self.get_config(Schema, {'sub': [{'opt': 'z'}, {'opt': 2}]})
 
         with self.expect_error(
-            sub="The configuration is invalid. The expected type was a key value mapping "
-            "(a python dict) but we got an object of type: <class 'int'>"
+            sub="The configuration is invalid. Expected a key-value mapping "
+            "(dict) but received: <class 'int'>"
         ):
             conf = self.get_config(Schema, {'sub': [1, 2]})
 

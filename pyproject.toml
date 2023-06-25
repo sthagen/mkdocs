@@ -35,6 +35,7 @@ requires-python = ">=3.7"
 dependencies = [
     "click >=7.0",
     "Jinja2 >=2.11.1",
+    "markupsafe >=2.0.1",
     "Markdown >=3.2.1",
     "PyYAML >=5.1",
     "watchdog >=2.0",
@@ -167,13 +168,13 @@ lint = [
     "flake8 mkdocs",
 ]
 check = [
-    "isort --check-only --diff mkdocs",
-    "black -q --check --diff mkdocs",
+    "isort --check-only --diff mkdocs docs",
+    "black -q --check --diff mkdocs docs",
     "lint",
 ]
 format = [
-    "isort -q mkdocs",
-    "black -q mkdocs",
+    "isort -q mkdocs docs",
+    "black -q mkdocs docs",
 ]
 
 [tool.hatch.envs.lint]
