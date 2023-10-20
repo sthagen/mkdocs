@@ -29,7 +29,6 @@ if TYPE_CHECKING:
 
 def build_page(title, path, config, md_src=''):
     """Helper which returns a Page object."""
-
     files = Files([File(path, config.docs_dir, config.site_dir, config.use_directory_urls)])
     page = Page(title, list(files)[0], config)
     # Fake page.read_source()
@@ -805,8 +804,7 @@ class _TestPreprocessor(markdown.preprocessors.Preprocessor):
 
     def run(self, lines: list[str]) -> list[str]:
         for i, line in enumerate(lines):
-            m = re.search(r'^--8<-- "(.+)"$', line)
-            if m:
+            if m := re.search(r'^--8<-- "(.+)"$', line):
                 try:
                     lines[i] = Path(self.base_path, m[1]).read_text()
                 except OSError:
